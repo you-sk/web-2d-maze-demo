@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>観賞用2D迷路アプリ</title>
+    <style>
+        /* 全体のスタイル */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* コンテナ */
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        /* キャンバス */
+        #mazeCanvas {
+            border: 3px solid #001f3f; /* ネイビーブルーの枠線 */
+            cursor: pointer;
+            background-color: #111; /* 壁のデフォルト色 */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* 操作パネル */
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 25px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 300px;
+            min-width: 280px;
+        }
+
+        /* 見出し */
+        h1, h2 {
+            margin: 0;
+            color: #001f3f;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+        h1 { font-size: 1.8em; }
+        h2 { font-size: 1.2em; color: #007BFF; }
+
+        /* コントロールのグループ */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        /* ラジオボタンのグループ */
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease-in-out;
+            border: 1px solid #ddd;
+        }
+        .radio-group input[type="radio"] {
+            display: none; /* ラジオボタン自体は非表示 */
+        }
+        .radio-group input[type="radio"]:checked + .radio-label {
+            background-color: #e0f7fa;
+            font-weight: bold;
+            color: #007BFF;
+            border-color: #007BFF;
+        }
+        .radio-group .color-box {
+            width: 22px;
+            height: 22px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .radio-label {
+             width: 100%;
+             display: flex;
+             align-items: center;
+             gap: 10px;
+        }
+        
+        /* ボタン */
+        button {
+            padding: 12px 15px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #generateBtn { background-color: #28a745; }
+        #generateBtn:hover:not(:disabled) { background-color: #218838; }
+        #resetBtn, #applySettingsBtn { background-color: #6c757d; }
+        #resetBtn:hover:not(:disabled), #applySettingsBtn:hover:not(:disabled) { background-color: #5a6268; }
+
+
+        /* 入力欄 */
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        /* ステータス表示 */
+        #status {
+            margin-top: 10px;
+            padding: 12px;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            min-height: 24px;
+            transition: background-color 0.3s;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <canvas id="mazeCanvas"></canvas>
+    <div id="controls">
+        <h1>2D迷路アプリ</h1>
+        
+        <div class="control-group">
+            <h2>① ツール選択</h2>
+            <div id="tool-selector" class="radio-group">
+                <label>
+                    <input type="radio" name="tool" value="wall" checked>
+                    <span class="radio-label"><span class="color-box" style="background-color: #111;"></span>壁を作る</span>
+                </label>
+                <label>
+                    <input type="radio" name="tool" value="path">
+                    <span class="radio-label"><span class="color-box" style="background-color: #fff;"></span>道を作る</span>
+                </label>
+                <label>
+                    <input type="radio" name="tool" value="start">
+                    <span class="radio-label"><span class="color-box" style="background-color: #4CAF50;"></span>スタートを置く</span>
+                </label>
+                <label>
+                    <input type="radio" name="tool" value="goal">
+                     <span class="radio-label"><span class="color-box" style="background-color: #F44336;"></span>ゴールを置く</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h2>② 迷路作成・解決</h2>
+            <button id="generateBtn">迷路を自動生成</button>
+            <button id="solveBtn">解決！</button>
+            <button id="resetBtn">手動作成用にリセット</button>
+            <div id="status">準備完了</div>
+        </div>
+
+        <div class="control-group">
+            <h2>③ 設定</h2>
+            <label for="mazeWidth">迷路の幅（奇数推奨）:</label>
+            <input type="number" id="mazeWidth" value="41" min="5" max="101" step="2">
+            <label for="mazeHeight">迷路の高さ（奇数推奨）:</label>
+            <input type="number" id="mazeHeight" value="31" min="5" max="101" step="2">
+             <label for="speed">探索速度 (ms):</label>
+            <input type="number" id="speed" value="10" min="0" max="100">
+            <button id="applySettingsBtn">サイズを適用してリセット</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM要素の取得
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const solveBtn = document.getElementById('solveBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const generateBtn = document.getElementById('generateBtn'); // New button
+    const applySettingsBtn = document.getElementById('applySettingsBtn');
+    const statusDiv = document.getElementById('status');
+    const mazeWidthInput = document.getElementById('mazeWidth');
+    const mazeHeightInput = document.getElementById('mazeHeight');
+    const speedInput = document.getElementById('speed');
+
+    // 定数と状態変数
+    const CELL_TYPE = { PATH: 0, WALL: 1, START: 2, GOAL: 3, VISITED: 4, FINAL_PATH: 5 };
+    const COLORS = {
+        [CELL_TYPE.PATH]: '#FFFFFF',       // 道
+        [CELL_TYPE.WALL]: '#111111',       // 壁
+        [CELL_TYPE.START]: '#4CAF50',      // スタート (緑)
+        [CELL_TYPE.GOAL]: '#F44336',       // ゴール (赤)
+        [CELL_TYPE.VISITED]: '#87CEEB',    // 探索済み (スカイブルー)
+        [CELL_TYPE.FINAL_PATH]: '#FFD700', // 最終経路 (ゴールド)
+    };
+    const cellSize = 15;
+    let mazeWidth, mazeHeight;
+    let maze = [];
+    let startPos = null;
+    let goalPos = null;
+    let isDrawing = false;
+    let isSolving = false; // Also used to lock during generation
+
+    // --- 初期化と描画 ---
+    
+    /**
+     * 迷路を初期化またはリセットする
+     * @param {boolean} createGrid - 手動作成用のグリッドを生成するかどうか
+     */
+    function initialize(createGrid = true) {
+        mazeWidth = parseInt(mazeWidthInput.value);
+        mazeHeight = parseInt(mazeHeightInput.value);
+        
+        if (mazeWidth % 2 === 0) mazeWidth++;
+        if (mazeHeight % 2 === 0) mazeHeight++;
+        mazeWidthInput.value = mazeWidth;
+        mazeHeightInput.value = mazeHeight;
+
+        canvas.width = mazeWidth * cellSize;
+        canvas.height = mazeHeight * cellSize;
+
+        // 全てを壁で埋める
+        maze = Array.from({ length: mazeHeight }, () => Array(mazeWidth).fill(CELL_TYPE.WALL));
+        startPos = null;
+        goalPos = null;
+        isSolving = false;
+
+        // 手動作成用のグリッドを生成する場合
+        if (createGrid) {
+            for (let r = 1; r < mazeHeight - 1; r++) {
+                for (let c = 1; c < mazeWidth - 1; c++) {
+                    maze[r][c] = CELL_TYPE.PATH;
+                }
+            }
+            updateStatus("迷路を手動で作成してください。");
+        }
+        
+        setUIState(true);
+        drawMaze();
+    }
+
+    /**
+     * 現在の迷路の状態をキャンバスに描画する
+     */
+    function drawMaze() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let r = 0; r < mazeHeight; r++) {
+            for (let c = 0; c < mazeWidth; c++) {
+                ctx.fillStyle = COLORS[maze[r][c]];
+                ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+
+    // --- 迷路自動生成 (Recursive Backtracker) ---
+
+    /**
+     * 迷路を自動生成する
+     */
+    function generateMaze() {
+        if (isSolving) return;
+        initialize(false); // グリッドなしで初期化（すべて壁の状態）
+        setUIState(false);
+        updateStatus("迷路を生成中...");
+
+        const stack = [];
+        const startR = 1, startC = 1;
+        
+        maze[startR][startC] = CELL_TYPE.PATH;
+        stack.push([startR, startC]);
+
+        while (stack.length > 0) {
+            const [r, c] = stack[stack.length - 1]; // 先頭を参照 (popしない)
+
+            const neighbors = [];
+            // 2マス先の未訪問の隣接セルを探す
+            // 上
+            if (r > 1 && maze[r - 2][c] === CELL_TYPE.WALL) neighbors.push([r - 2, c, r - 1, c]);
+            // 下
+            if (r < mazeHeight - 2 && maze[r + 2][c] === CELL_TYPE.WALL) neighbors.push([r + 2, c, r + 1, c]);
+            // 左
+            if (c > 1 && maze[r][c - 2] === CELL_TYPE.WALL) neighbors.push([r, c - 2, r, c - 1]);
+            // 右
+            if (c < mazeWidth - 2 && maze[r][c + 2] === CELL_TYPE.WALL) neighbors.push([r, c + 2, r, c + 1]);
+
+            if (neighbors.length > 0) {
+                // ランダムに次のセルを選択
+                const [nextR, nextC, pathR, pathC] = neighbors[Math.floor(Math.random() * neighbors.length)];
+                
+                // 壁を壊して道にする
+                maze[nextR][nextC] = CELL_TYPE.PATH;
+                maze[pathR][pathC] = CELL_TYPE.PATH;
+
+                stack.push([nextR, nextC]);
+            } else {
+                // 行き止まりならスタックから取り出す (バックトラック)
+                stack.pop();
+            }
+        }
+        
+        // スタートとゴールを設定
+        startPos = { r: 1, c: 1 };
+        goalPos = { r: mazeHeight - 2, c: mazeWidth - 2 };
+        maze[startPos.r][startPos.c] = CELL_TYPE.START;
+        maze[goalPos.r][goalPos.c] = CELL_TYPE.GOAL;
+
+        drawMaze();
+        updateStatus("迷路が生成されました！");
+        setUIState(true);
+    }
+
+    // --- ユーザー操作 ---
+
+    function handleCanvasInteraction(e) {
+        if (isSolving) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const col = Math.floor(x / cellSize);
+        const row = Math.floor(y / cellSize);
+        if (row >= 0 && row < mazeHeight && col >= 0 && col < mazeWidth) setCell(row, col);
+    }
+
+    function setCell(r, c) {
+        const tool = document.querySelector('input[name="tool"]:checked').value;
+        const currentCellType = maze[r][c];
+        if (currentCellType === CELL_TYPE.START) startPos = null;
+        if (currentCellType === CELL_TYPE.GOAL) goalPos = null;
+        if (tool === 'start') {
+            if (startPos) maze[startPos.r][startPos.c] = CELL_TYPE.PATH;
+            startPos = { r, c };
+            maze[r][c] = CELL_TYPE.START;
+        } else if (tool === 'goal') {
+            if (goalPos) maze[goalPos.r][goalPos.c] = CELL_TYPE.PATH;
+            goalPos = { r, c };
+            maze[r][c] = CELL_TYPE.GOAL;
+        } else {
+            maze[r][c] = tool === 'wall' ? CELL_TYPE.WALL : CELL_TYPE.PATH;
+        }
+        drawMaze();
+    }
+
+    // --- 迷路解決アルゴリズム (BFS) ---
+
+    async function solveMaze() {
+        if (!startPos || !goalPos) {
+            updateStatus("スタートとゴールを配置してください！");
+            return;
+        }
+        if (isSolving) return;
+        isSolving = true;
+        setUIState(false);
+        updateStatus("探索中...");
+        for (let r = 0; r < mazeHeight; r++) {
+            for (let c = 0; c < mazeWidth; c++) {
+                if (maze[r][c] === CELL_TYPE.VISITED || maze[r][c] === CELL_TYPE.FINAL_PATH) {
+                    maze[r][c] = CELL_TYPE.PATH;
+                }
+            }
+        }
+        drawMaze();
+        const queue = [[startPos.r, startPos.c]];
+        const cameFrom = new Map();
+        const visited = new Set([`${startPos.r},${startPos.c}`]);
+        let goalFound = false;
+        while (queue.length > 0) {
+            const [r, c] = queue.shift();
+            if (r === goalPos.r && c === goalPos.c) {
+                goalFound = true;
+                break;
+            }
+            if (maze[r][c] !== CELL_TYPE.START) maze[r][c] = CELL_TYPE.VISITED;
+            const speed = parseInt(speedInput.value);
+            if (speed > 0) {
+                 drawMaze();
+                 await sleep(speed);
+            }
+            const neighbors = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+            for (const [nr, nc] of neighbors) {
+                const key = `${nr},${nc}`;
+                if (nr >= 0 && nr < mazeHeight && nc >= 0 && nc < mazeWidth &&
+                    (maze[nr][nc] === CELL_TYPE.PATH || maze[nr][nc] === CELL_TYPE.GOAL) &&
+                    !visited.has(key)) {
+                    visited.add(key);
+                    cameFrom.set(key, { r, c });
+                    queue.push([nr, nc]);
+                }
+            }
+        }
+        if (parseInt(speedInput.value) === 0) drawMaze();
+        if (goalFound) {
+            updateStatus("ゴール！経路を表示します。");
+            await drawFinalPath(cameFrom);
+            updateStatus("最短経路が見つかりました！");
+        } else {
+            updateStatus("ゴールまでの経路が見つかりませんでした。");
+        }
+        isSolving = false;
+        setUIState(true);
+    }
+
+    async function drawFinalPath(cameFrom) {
+        let current = goalPos;
+        while (current.r !== startPos.r || current.c !== startPos.c) {
+            const key = `${current.r},${current.c}`;
+            const parent = cameFrom.get(key);
+            if (!parent) break;
+            current = parent;
+            if (maze[current.r][current.c] !== CELL_TYPE.START) {
+                 maze[current.r][current.c] = CELL_TYPE.FINAL_PATH;
+                 drawMaze();
+                 await sleep(25);
+            }
+        }
+    }
+
+    // --- ヘルパー関数 ---
+    
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    function setUIState(enabled) {
+        solveBtn.disabled = !enabled;
+        resetBtn.disabled = !enabled;
+        generateBtn.disabled = !enabled;
+        applySettingsBtn.disabled = !enabled;
+        mazeWidthInput.disabled = !enabled;
+        mazeHeightInput.disabled = !enabled;
+    }
+
+    function updateStatus(message) { statusDiv.textContent = message; }
+
+    // --- イベントリスナーの登録 ---
+    
+    canvas.addEventListener('mousedown', (e) => { e.preventDefault(); isDrawing = true; handleCanvasInteraction(e); });
+    canvas.addEventListener('mousemove', (e) => { e.preventDefault(); if (isDrawing) handleCanvasInteraction(e); });
+    document.addEventListener('mouseup', () => { isDrawing = false; });
+    canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+
+    generateBtn.addEventListener('click', generateMaze);
+    solveBtn.addEventListener('click', solveMaze);
+    resetBtn.addEventListener('click', () => initialize(true));
+    applySettingsBtn.addEventListener('click', () => initialize(true));
+
+    // ページ読み込み時に初期化処理を実行
+    initialize(true);
+});
+</script>
+
+</body>
+</html>
